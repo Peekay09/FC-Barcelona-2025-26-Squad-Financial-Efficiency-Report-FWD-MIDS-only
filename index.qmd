@@ -1,0 +1,115 @@
+---
+title: "FC Barcelona 2025/26 Squad Financial Efficiency Report until 17 April 2026 (35 weeks)"
+author: "Peekay PK"
+date: 20 april 2026
+format: 
+      html: 
+        toc: True
+        code-fold: True
+        theme: slate
+        css: styles (1).css
+        
+      
+editor: visual
+---
+
+## 
+
+# [Executive Summary: Key Findings]{.underline}
+
+1.  [***Dependence on Lamine Yamal:***]{.underline} *The team’s attack heavily depends on Lamine Yamal, who produces over 20% of the offense while taking up about 12.5% of the wage budget. His incredible return on investment is impressive but also risky, as the squad relies too much on this single young player for goal creation.*
+
+2.  [***The Real MVPs:***]{.underline} *Ferrán Torres, Lamine Yamal, and Fermín López are the real financial MVPs of the team, delivering high-impact goals and assists for a fraction of the cost compared to senior players. These academy products keep the club financially stable by balancing out the expensive contracts that aren’t pulling their weight.*
+
+3.  [***Superstar Premium issue :***]{.underline} *Veterans like Robert Lewandowski and Frenkie de Jong are paid top dollar but contribute far less efficiently. Lewandowski’s cost per goal involvement is more than double that of the younger players, showing the club is paying a premium for experience that may be hurting its financial flexibility.*
+
+    *The club has around €27 million tied up in underperforming contracts, mainly Lewandowski who together with De Jong eats up nearly a third of the wage bill but contribute just 15% of the attacking output. This imbalance limits the team’s ability to invest in fresh talent and exposes a vulnerability in the squad’s financial and tactical structure.*
+
+```{r}
+#| message: false
+#| warning: false
+library(rvest)
+library(tidyverse)
+library(gt)
+library(scales)
+library(ggrepel)
+library(DT)
+BFC<-read_csv2('team-players (1) barca.csv')
+BFC2<-BFC%>%filter(str_detect(position,'M')|str_detect(position,'F'))%>%filter(min>=1000)%>%mutate(xG=as.numeric(xG),xA=as.numeric(xA))
+
+url<-('https://www.salaryleaks.com/football/la-liga/fc-barcelona')
+page<-read_html(url)
+wagesBFC<-page%>%html_elements(xpath = '//*[contains(concat( " ", @class, " " ), concat( " ", "py-3", " " ))]')%>%html_table()%>%.[[2]]%>%slice(1:25)
+BFCWAGES<-wagesBFC%>%mutate(Player=case_when(Player=='Ferran Torres'~'Ferrán Torres',Player=='Frenkie De Jong'~'Frenkie de Jong',TRUE~Player))%>%filter(Player%in%BFC2$player)
+finalbfc<-BFC2%>%rename(Player=player)%>%left_join(BFCWAGES)
+
+
+
+
+
+
+```
+
+# [Cost Efficiency: Barcelona]{.underline}
+
+```{r}
+bfc_alt<-finalbfc%>%mutate(Weekly=parse_number(Weekly),paid=Weekly*35)%>%mutate(G_A=goals+assists)%>%mutate(Cost_GA=paid/G_A)
+
+ggplot(bfc_alt,aes(x=Player,Cost_GA))+geom_col()+coord_flip()+scale_y_continuous(labels =label_dollar(prefix = '€'))+theme_minimal()+labs(title = 'Cost Per Goal Chart',y='Cost per Goal Contribution',x='Players')
+```
+
+-   [**The Financial Bargains :**]{.underline} Ferrán Torres stands out as the most financially efficient player in the squad, with each goal or assist he contributes costing the club approximately €250,000. Alongside him, academy graduates Lamine Yamal and Fermín López also demonstrate impressive cost-effectiveness, delivering results for under €500,000 per contribution. This highlights the critical financial role that La Masia plays in maintaining a balanced budget, providing high-value talent that supports the club’s economic sustainability.
+
+-   [**The Premium:**]{.underline} Robert Lewandowski represents what can be described as the "Superstar Tax" within the squad. While his sheer volume of goals is undeniably vital to the team’s overall success, the financial analysis reveals that each goal contribution from Lewandowski costs the club more than €1,100,000. This figure is roughly double the cost per contribution compared to players like Olmo or Yamal, illustrating the premium that comes with acquiring and relying on high-profile, elite-level talent. Essentially, the club is paying for Lewandowski’s proven ability and experience, accepting a higher cost in exchange for consistent, top-tier performance on the field.
+
+-   [**The Financial Burdens:**]{.underline} Frenkie de Jong and Eric Garcia are costing the club roughly €2,000,000+ per attacking return.It is important to note that both De Jong and Gracia are not pure attackers which could be reason as to why their cost per G/A is much higher than the rest
+
+# [Output v. Cost: Barcelona]{.underline}
+
+```{r}
+#| warning: false
+median_wage <- median(bfc_alt$paid, na.rm = TRUE)
+median_ga <- median(bfc_alt$G_A, na.rm = TRUE)
+
+ggplot(bfc_alt,aes(x=G_A,y=paid,labels=(paste0(Player,'(',G_A,')'))))+geom_point(color='blue4')+scale_y_continuous(labels =label_dollar(prefix = '€'))+geom_text_repel(box.padding = 0.3)+geom_vline(xintercept=median_ga,linetype='dashed',color='blue',alpha=0.5,size=0.7)+geom_hline(yintercept=median_wage,linetype='dashed',color='blue',alpha=0.5,size=0.7)+theme_light()+annotate("text", x = 5, y = 0, label = "Low Output,Low Cost", color = 'gray70', size = 4)+annotate("text", x = 5, y = 15000000, label = "Low Output, High Cost", color = "gray70", size = 4)+annotate("text", x = 23, y = 0, label = "High Output,Low Cost", color = "gray70", size = 4)+annotate("text", x = 23, y = 15000000, label = "High Output, High Cost", color = "gray70", size = 4)+labs(title = 'Cost and Output Classification Graph', x='Goal Contributions ',y='Amount Paid So Far (35 weeks)')
+```
+
+-   [**The Outlier:**]{.underline}Lamine Yamal stands out completely on his own in the High Output, High Cost category, with 26 goal contributions—almost twice the team’s average. Even though his salary is quite high (around €11 million), his performance clearly justifies it. He’s the main driver of the team’s attack. But the fact that he’s so far ahead on the output scale shows there’s a big risk here, the team relies heavily on just one player to create and score chances.
+
+    The club needs to take extra care of him. Managing his playing time and workload is crucial to avoid injuries because losing him would seriously hurt the team’s ability to score and assist.
+
+-   [**The Liabilities:**]{.underline}Frenkie de Jong and Robert Lewandowski fall into the Low Output, High Cost category. Lewandowski is the highest-paid player on the team at around €15 million but only delivers average output, while De Jong, with his high-level salary of about €12 million, contributes very little in attacking stats. The club is clearly paying a big premium here. De Jong’s deeper midfield role explains his lower goal and assist numbers, but his high wages limit the team’s flexibility to bring in more attacking players. Meanwhile, Lewandowski is starting to show signs of aging, giving just average performance for the superstar-level salary he commands.
+
+    The club should consider restructuring contracts or looking for transfer options. Finding a way to reduce De Jong’s wage burden could free up funds, and it’s important to start planning Lewandowski’s replacement now.
+
+-   [**The Bargains:**]{.underline}Ferrán Torres and Dani Olmo sit in the High Output, Low Cost group. Torres stands out even more as he’s producing more than Lewandowski while earning just about a quarter of his wages. These players are the real financial backbone of the team. Their strong performances give the club great value for money and help balance out the expensive contracts of some of the less productive players
+
+    The club should focus on keeping and building around these players. It’s important to avoid overpaying or renegotiating contracts in a way that would push their costs up too much, so they can continue to serve as cost-effective pillars for the squad’s budget.
+
+# [Contribution Share: Barcelona]{.underline}
+
+```{r}
+bfc_contr<-bfc_alt%>%mutate(contr_paid=paid/sum(paid),contr_g_a=G_A/sum(G_A))%>% select(contr_paid,contr_g_a,Player)
+
+ggplot(bfc_contr,aes(x=contr_paid,contr_g_a,label=Player))+geom_point(color='blue4')+geom_text_repel(box.padding = 0.3)+geom_abline(slope = 1,intercept = 0.0,linetype='dashed')+scale_y_continuous(labels = percent_format(accuracy = 1),expand = c(0,0.05))+scale_x_continuous(label=percent_format(1),expand = c(0,0.05))+theme_light()+labs(title = 'Contribution Chart',y= 'Attacking Output Percentange',x='Squad Wage Percentage')
+```
+
+-   [**The Baselines**:]{.underline} Raphinha sits right on the parity line, meaning he takes up about 12.5% of the team’s wage budget and delivers exactly 12.5% of the team’s attacking output. Marcus Rashford is just slightly below that line. Both Raphinha and Rashford are giving the club exactly what they’re paid for ,not a bargains but also not a drain on resources. Their wages align perfectly with their contributions on the field
+
+    The club should use their performance and cost as the standard. For established, prime-age attackers like them, this level of output relative to cost should be the minimum expectation moving forward.
+
+-   [**The Clear Bargain:**]{.underline}Lamine Yamal stands out as the player farthest above the parity line. He accounts for about 12.5% of the team’s wage budget but is responsible for an impressive 21% of the total attacking output. His ROI is incredible as he’s delivering almost twice the value compared to what he’s being paid. From a business perspective, he’s the club’s most valuable asset right now and is a major driver behind the team’s strong offensive numbers.
+
+-   [**Absorbing the Deficit:**]{.underline}Torres, Olmo, and López are grouped together well above the parity line on the left side of the chart. For instance, Torres takes up less than 5% of the wage budget but contributes about 12% of the team’s attacking output. These players are the true financial heroes of the squad. They’re delivering way more value than their salaries suggest, essentially “subsidizing” the costly contracts of some underperforming players. Without their contributions, the team’s overall wage-to-performance balance would be at serious risk.
+
+    The club should not alter these contracts. The club should keep these players exactly where they are since they provide essential depth and productivity, allowing the team to afford big investments in other key positions
+
+-   [**The Wage Bill Eaters:**]{.underline} Both Lewandowski and De Jong are positioned far to the right but well below the parity line. Lewandowski takes up nearly 16% of the wage budget but only delivers 10% of the team’s attacking output. De Jong, while playing a deeper midfield role, consumes 14% of the wages but contributes just 5% of the offensive output. These players are weighing down the squad’s financial efficiency. Together, they account for almost a third of the total wage bill but provide only a fraction of the attacking value. Even considering De Jong’s deeper role, his high salary still limits the club’s ability to invest in more effective attacking players.
+
+    The club needs to take a hard stance on restructuring these contracts. Having nearly 30% of the budget tied up in below-par performers isn’t sustainable.
+
+# [Barcelona Player Table]{.underline}
+
+```{r}
+gt(finalbfc)
+```
